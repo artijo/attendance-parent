@@ -20,7 +20,6 @@ export default function Students() {
                 
                 // ดึงข้อมูล LINE Profile
                 const profile = await liff.getProfile();
-                console.log("LINE Profile:", profile);
                 setUserId(profile.userId);
             } catch (error) {
                 console.error("Error getting LINE profile:", error);
@@ -154,11 +153,11 @@ export default function Students() {
                                         <tr key={student.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-text">{index + 1}</td>
                                             <td className="px-4 py-3 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-text">{student.name}</div>
+                                                <div className="text-sm font-medium text-text">{student.student.fName} {student.student.lName}</div>
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-primary">
-                                                    {student.grade}
+                                                    ม.{student.student.classroomMembers[0].classroom.classLevel}/{student.student.classroomMembers[0].classroom.classRoom}
                                                 </span>
                                             </td>
                                             {/* <td className="px-4 py-3 whitespace-nowrap text-sm text-text-alt">{student.status}</td> */}
@@ -171,13 +170,13 @@ export default function Students() {
                         {/* การ์ดสำหรับหน้าจอมือถือ (ซ่อนบนหน้าจอขนาดกลางขึ้นไป) */}
                         <div className="sm:hidden space-y-3">
                             {students.map((student, index) => (
-                                <div key={student.id} className="bg-white rounded-md border border-line-alt p-3 shadow-sm">
+                                <div key={index} className="bg-white rounded-md border border-line-alt p-3 shadow-sm">
                                     <div className="flex justify-between items-center mb-2">
                                         <div className="text-sm font-bold text-text">
-                                            {student.name}
+                                            {student.student.fName} {student.student.lName}
                                         </div>
                                         <span className="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full font-medium">
-                                            {student.grade}
+                                        ม.{student.student.classroomMembers[0].classroom.classLevel}/{student.student.classroomMembers[0].classroom.classRoom}
                                         </span>
                                     </div>
                                     <div className="flex justify-between text-xs">
