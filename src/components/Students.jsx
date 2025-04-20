@@ -1,47 +1,129 @@
 import { useEffect, useState } from "react";
+import { HOSTNAME } from "../config";
+import liff from "@line/liff";
 
 export default function Students() {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [userId, setUserId] = useState(null);
     
     useEffect(() => {
-        fetchStudents();
+        // ดึง userId จาก LINE Login ก่อน
+        async function getUserProfile() {
+            try {
+                // รอให้ LIFF พร้อมใช้งาน
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+                
+                // ดึงข้อมูล LINE Profile
+                const profile = await liff.getProfile();
+                console.log("LINE Profile:", profile);
+                setUserId(profile.userId);
+            } catch (error) {
+                console.error("Error getting LINE profile:", error);
+                setError("ไม่สามารถดึง userId ได้ กรุณาลองใหม่อีกครั้ง");
+                setLoading(false);
+            }
+        }
+        
+        getUserProfile();
     }, []);
+    
+    // เมื่อ userId มีการเปลี่ยนแปลง (ได้รับค่าแล้ว) จึงดึงข้อมูลนักเรียน
+    useEffect(() => {
+        if (userId) {
+            fetchStudents();
+        }
+    }, [userId]);
     
     const fetchStudents = async () => {
         try {
-            // Simulate API call with mock data for now
-            setTimeout(() => {
-                setStudents([
-                    { id: 1, name: "นักเรียน คนที่หนึ่ง", grade: "ม.1/1", status: "กำลังศึกษา" },
-                    { id: 2, name: "นักเรียน คนที่สอง", grade: "ม.2/3", status: "กำลังศึกษา" }
-                ]);
-                setLoading(false);
-            }, 1000);
+            setLoading(true);
             
-            // Uncomment when API is ready
-            // const response = await fetch("https://api.example.com/students");
-            // const data = await response.json();
-            // setStudents(data);
+            // ตรวจสอบว่ามี userId หรือไม่
+            if (!userId) {
+                setError("ไม่พบข้อมูล userId กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+                setLoading(false);
+                return;
+            }
+            
+            console.log("Fetching students for userId:", userId);
+            
+            // เรียกใช้ API ด้วย userId ที่ได้รับ
+            const response = await fetch(`${HOSTNAME}/p/students/${userId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log("Student data:", data);
+            setStudents(data);
+            setLoading(false);
+            
+            // ในกรณีที่ API ยังไม่พร้อม สามารถใช้ข้อมูลจำลอง
+            // setStudents([
+            //     { id: 1, name: "นักเรียน คนที่หนึ่ง", grade: "ม.1/1", status: "กำลังศึกษา" },
+            //     { id: 2, name: "นักเรียน คนที่สอง", grade: "ม.2/3", status: "กำลังศึกษา" }
+            // ]);
             // setLoading(false);
         } catch (error) {
             console.error("Error fetching students:", error);
-            setError("ไม่สามารถดึงข้อมูลนักเรียนได้ กรุณาลองใหม่อีกครั้ง");
+            setError(`ไม่สามารถดึงข้อมูลนักเรียนได้ (${error.message}) กรุณาลองใหม่อีกครั้ง`);
             setLoading(false);
         }
+    };
+
+    // ฟังก์ชันสำหรับการโหลดข้อมูลใหม่
+    const handleRefresh = () => {
+        setLoading(true);
+        setError(null);
+        
+        // ถ้ายังไม่มี userId ให้ดึงข้อมูล profile ใหม่
+        if (!userId) {
+            liff.getProfile()
+                .then(profile => {
+                    setUserId(profile.userId);
+                })
+                .catch(error => {
+                    console.error("Error refreshing profile:", error);
+                    setError("ไม่สามารถดึงข้อมูล userId ได้ กรุณาลองใหม่อีกครั้ง");
+                    setLoading(false);
+                });
+        } else {
+            // ถ้ามี userId แล้ว ให้โหลดข้อมูลนักเรียนใหม่
+            fetchStudents();
+        }
+    };
+
+    // ฟังก์ชันนำทางไปยังหน้าเพิ่มนักเรียน
+    const goToAddStudent = () => {
+        window.location.href = '/new-student';
     };
 
     return (
         <div className="flex flex-col w-full">
             {/* Students list */}
             <div className="bg-white rounded-lg p-3 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6 flex items-center">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    รายชื่อนักเรียนในความดูแล
-                </h2>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-primary mb-3 sm:mb-0 flex items-center">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        รายชื่อนักเรียนในความดูแล
+                    </h2>
+                    <button 
+                        onClick={goToAddStudent}
+                        className="bg-secondary hover:bg-opacity-90 text-white px-3 py-2 sm:px-4 rounded-md text-sm sm:text-base flex items-center shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        เพิ่มนักเรียน
+                    </button>
+                </div>
 
                 {error && (
                     <div className="p-3 sm:p-4 mb-4 text-center bg-red-100 border border-red-200 text-red-700 rounded-md text-sm">
@@ -50,8 +132,9 @@ export default function Students() {
                 )}
                 
                 {loading ? (
-                    <div className="flex justify-center items-center h-32 sm:h-40">
-                        <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-primary"></div>
+                    <div className="flex flex-col justify-center items-center h-32 sm:h-40">
+                        <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-primary mb-2"></div>
+                        <p className="text-sm text-gray-500">{!userId ? "กำลังดึงข้อมูลผู้ใช้..." : "กำลังโหลดข้อมูลนักเรียน..."}</p>
                     </div>
                 ) : students.length > 0 ? (
                     <>
@@ -63,7 +146,7 @@ export default function Students() {
                                         <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-text-alt uppercase tracking-wider">ลำดับ</th>
                                         <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-text-alt uppercase tracking-wider">ชื่อ-นามสกุล</th>
                                         <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-text-alt uppercase tracking-wider">ชั้นเรียน</th>
-                                        <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-text-alt uppercase tracking-wider">สถานะ</th>
+                                        {/* <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-text-alt uppercase tracking-wider">สถานะ</th> */}
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-line-alt">
@@ -78,7 +161,7 @@ export default function Students() {
                                                     {student.grade}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-text-alt">{student.status}</td>
+                                            {/* <td className="px-4 py-3 whitespace-nowrap text-sm text-text-alt">{student.status}</td> */}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -99,29 +182,36 @@ export default function Students() {
                                     </div>
                                     <div className="flex justify-between text-xs">
                                         <span className="text-text-alt">ลำดับที่: {index + 1}</span>
-                                        <span className="text-text-alt">{student.status}</span>
+                                        {student.status && <span className="text-text-alt">{student.status}</span>}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </>
                 ) : (
-                    <div className="py-10 text-center">
-                        <svg className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <div className="py-8 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                         </svg>
-                        <h3 className="mt-2 text-sm font-medium text-text">ไม่พบข้อมูลนักเรียน</h3>
-                        <p className="mt-1 text-sm text-text-alt">กรุณาติดต่อฝ่ายทะเบียน</p>
+                        <h3 className="mt-2 text-sm font-medium text-text">ยังไม่มีนักเรียนในความดูแลของท่าน</h3>
+                        <p className="mt-1 text-sm text-text-alt mb-4">คุณสามารถเพิ่มนักเรียนในความดูแลได้ทันที</p>
+                        <button
+                            onClick={goToAddStudent}
+                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            เพิ่มนักเรียนใหม่
+                        </button>
                     </div>
                 )}
                 
                 <div className="mt-6 sm:mt-8 flex justify-center">
                     <button
-                        className="px-4 sm:px-6 py-2 bg-secondary hover:bg-opacity-90 text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary flex items-center text-sm sm:text-base"
-                        onClick={() => {
-                            setLoading(true);
-                            fetchStudents();
-                        }}
+                        className="px-4 sm:px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 flex items-center text-sm sm:text-base"
+                        onClick={handleRefresh}
+                        disabled={loading}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

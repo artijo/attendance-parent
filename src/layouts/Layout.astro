@@ -47,11 +47,32 @@ import Profile from "../components/Profile";
 		</main>
 		<script>
 			import liff from "@line/liff";
+			import { HOSTNAME } from "../config.js";
 			async function initLiff() {
 				await liff.init({ liffId: '2006049603-5Ne6yzM4'});
 				if (liff.isLoggedIn()) {
-					const profile = await liff.getProfile();
-					console.log(profile);
+					liff.getProfile().then(profile => {
+						fetch(`${HOSTNAME}/p/create`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							userId: liff.getContext().userId,
+							liffId: liff.getVersion(),
+							accessToken: liff.getAccessToken(),
+							displayName: profile.displayName,
+						}),
+					})
+					.then(response => {
+						if (!response.ok) {
+							throw new Error('Network response was not ok');
+						}
+						return response.json();
+					})
+					}).catch(err => {
+						console.error('Error getting profile:', err);
+					});
 				} else {
 					liff.login();
 				}
