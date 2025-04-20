@@ -1,1 +1,1 @@
-export const HOSTNAME = "http://localhost:3000"; // Replace with your actual API endpoint
+export const HOSTNAME = "https://studentattendanceapi-production.up.railway.app"; // Replace with your actual API endpoint
