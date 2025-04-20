@@ -1,16 +1,88 @@
 ---
 import "../global.css";
+import Profile from "../components/Profile";
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="th" class="scroll-smooth">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+		<meta name="theme-color" content="#0054A6">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 		<title>ระบบลงทะเบียนรับการแจ้งเตือนการเข้าเรียนและกิจกรรมจองนักเรียน สำหรับผู้ปกครอง</title>
 	</head>
-	<body>
-		<slot />
+	<body class="min-h-screen flex flex-col bg-bg text-text">
+		<main class="flex-grow container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
+			<header class="bg-gradient-to-r from-primary to-accent text-white p-4 sm:p-6 rounded-lg shadow-md mb-4 sm:mb-6">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center space-x-2 sm:space-x-3">
+						<img src="/Logo_NPS.png" alt="School Logo" class="h-10 sm:h-12 w-auto" />
+						<h1 class="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">
+							<span class="block sm:hidden">ระบบแจ้งเตือนผู้ปกครอง</span>
+							<span class="hidden sm:block">ระบบลงทะเบียนรับการแจ้งเตือน</span>
+							<span class="text-base sm:text-xl md:text-2xl hidden sm:block">การเข้าเรียนและกิจกรรมจองนักเรียน สำหรับผู้ปกครอง</span>
+						</h1>
+					</div>
+				</div>
+			</header>
+			
+			<Profile client:load />
+			
+			<div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6 mt-4 sm:mt-6 overflow-hidden">
+				<slot/>
+			</div>
+			
+			<footer class="bg-bg-alt text-white p-3 sm:p-4 rounded-lg mt-auto text-xs sm:text-sm">
+				<div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+					<p class="text-center md:text-left mb-2 md:mb-0">&copy; {new Date().getFullYear()} ระบบลงทะเบียนรับการแจ้งเตือนการเข้าเรียนและกิจกรรมจองนักเรียน</p>
+					<div class="flex space-x-4">
+						<a href="#" class="hover:text-secondary transition-colors">นโยบาย</a>
+						<a href="#" class="hover:text-secondary transition-colors">ติดต่อเรา</a>
+					</div>
+				</div>
+			</footer>
+		</main>
+		<script>
+			import liff from "@line/liff";
+			async function initLiff() {
+				await liff.init({ liffId: '2006049603-5Ne6yzM4'});
+				if (liff.isLoggedIn()) {
+					const profile = await liff.getProfile();
+					console.log(profile);
+				} else {
+					liff.login();
+				}
+			}
+			initLiff();
+		</script>
 	</body>
 </html>
+
+<style is:global>
+	:root {
+		--color-primary: #0054A6;
+		--color-accent: #1262a5;
+		--color-secondary: #EE722A;
+	}
+	
+	/* Add responsive Tailwind utilities */
+	@media (max-width: 640px) {
+		header h1 {
+			font-size: 1.25rem;
+		}
+		
+		.small-text {
+			font-size: 0.75rem;
+		}
+		
+		/* แทรกการตัด text ที่ยาวให้แสดง ... */
+		.truncate-text {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+	}
+</style>
