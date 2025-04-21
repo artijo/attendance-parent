@@ -97,29 +97,26 @@ import Profile from "../components/Profile";
 					}
 					
 					// ตรวจสอบว่าได้ context หรือไม่
-					const context = liff.getContext();
-					if (!context) {
-						console.error("LIFF context is undefined");
+					const profile = await liff.getProfile();
+					if (!profile) {
+						console.error("LIFF profile is undefined");
 						return;
 					}
 					
 					// บันทึก userId เพื่อใช้ในการส่งข้อมูลไป backend
-					const userId = context.userId;
+					const userId = profile.userId;
 					if (!userId) {
 						console.error("userId is not available from context");
 						return;
 					}
 					
-					// รอให้ได้ข้อมูล profile
-					const profile = await liff.getProfile();
-					console.log("LINE profile received:", profile);
 					
 					// ส่งข้อมูลไป backend เมื่อมีทั้ง userId และ profile แล้ว
 					await sendUserDataToBackend(userId, profile);
 					
 					// เก็บข้อมูลไว้ใน sessionStorage เพื่อให้สามารถใช้ในคอมโพเนนต์อื่นได้
-					sessionStorage.setItem("lineUserId", userId);
-					sessionStorage.setItem("lineProfile", JSON.stringify(profile));
+					// sessionStorage.setItem("lineUserId", userId);
+					// sessionStorage.setItem("lineProfile", JSON.stringify(profile));
 					
 				} catch (error) {
 					console.error("Error in LIFF initialization:", error);
