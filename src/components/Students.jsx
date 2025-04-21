@@ -342,10 +342,9 @@ export default function Students() {
                     ท่านจะได้รับการแจ้งเตือนผ่าน LINE เมื่อนักเรียนในความดูแลของท่าน:
                 </p>
                 <ul className="list-disc list-inside text-xs sm:text-sm text-text-alt space-y-1 pl-2">
-                    <li>มาถึงโรงเรียน</li>
-                    <li>ออกจากโรงเรียน</li>
+                    <li>เข้าเรียน</li>
                     <li>ขาดเรียนหรือมาสาย</li>
-                    <li>มีกิจกรรมพิเศษ</li>
+                    <li>เข้าร่วมกิจกรรม</li>
                 </ul>
             </div>
         </div>

@@ -1,11 +1,13 @@
 import liff from "@line/liff";
 import { useEffect, useState } from "react";
+import { HOSTNAME } from "../config";
 
 export default function Profile() {
     const [pictureUrl, setPictureUrl] = useState("");
     const [displayName, setDisplayName] = useState("");
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [userId, setUserId] = useState(null);
 
     async function getProfile() {
         try {
@@ -14,6 +16,7 @@ export default function Profile() {
             console.log("LIFF Profile:", profile);
             setPictureUrl(profile.pictureUrl);
             setDisplayName(profile.displayName);
+            setUserId(profile.userId);
             setLoading(false);
         } catch (error) {
             console.error("Error getting LIFF profile:", error);
@@ -22,9 +25,32 @@ export default function Profile() {
         }
     }
 
+    async function getUserProfile() {
+        try {
+            const user = await fetch(`${HOSTNAME}/p/profile/${userId}`)
+            const data = await user.json()
+            setDisplayName(data.name)
+        } catch (error) {
+            console.error("Error getting user profile:", error);
+            setError("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
+        }
+    }
+
     useEffect(() => {
         getProfile();
     }, []);
+
+    useEffect(() => {
+        if (userId) {
+            getUserProfile();
+        }
+    }
+    , [userId]);
+
+    // ฟังก์ชันสำหรับไปยังหน้าอัปเดตข้อมูลผู้ปกครอง
+    const goToUpdateProfile = () => {
+        window.location.href = "/update-profile";
+    };
 
     return (
         <div className="flex flex-col sm:flex-row items-center p-3 sm:p-4 bg-white rounded-lg shadow-sm">
@@ -48,10 +74,19 @@ export default function Profile() {
                             </svg>
                         </div>
                     )}
-                    <div className="text-center sm:text-left">
+                    <div className="text-center sm:text-left flex-grow">
                         <h2 className="text-lg font-bold text-text truncate-text max-w-[200px]">{displayName || "ผู้ปกครอง"}</h2>
                         <p className="text-sm text-text-alt">ยินดีต้อนรับเข้าสู่ระบบแจ้งเตือนผู้ปกครอง</p>
                     </div>
+                    <button 
+                        onClick={goToUpdateProfile} 
+                        className="mt-3 sm:mt-0 px-3 py-1.5 bg-secondary hover:bg-opacity-90 text-white text-sm rounded-md flex items-center transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        แก้ไขข้อมูล
+                    </button>
                 </>
             )}
             {error && (
