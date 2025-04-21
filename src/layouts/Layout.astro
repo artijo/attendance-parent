@@ -48,36 +48,89 @@ import Profile from "../components/Profile";
 		<script>
 			import liff from "@line/liff";
 			import { HOSTNAME } from "../config.js";
-			async function initLiff() {
-				await liff.init({ liffId: '2006049603-5Ne6yzM4'});
-				if (liff.isLoggedIn()) {
-					liff.getProfile().then(profile => {
-						fetch(`${HOSTNAME}/p/create`, {
+			
+			// สร้างฟังก์ชันที่จะส่งข้อมูลไป backend เมื่อมี userId แล้วเท่านั้น
+			async function sendUserDataToBackend(userId, profile) {
+				try {
+					if (!userId) {
+						console.error("userId is undefined or null");
+						return;
+					}
+					
+					console.log("Sending user data to backend:", { userId, displayName: profile.displayName });
+					
+					const response = await fetch(`${HOSTNAME}/p/create`, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
 						},
 						body: JSON.stringify({
-							userId: liff.getContext().userId,
+							userId: userId,
 							liffId: liff.getVersion(),
 							accessToken: liff.getAccessToken(),
 							displayName: profile.displayName,
 						}),
-					})
-					.then(response => {
-						if (!response.ok) {
-							throw new Error('Network response was not ok');
-						}
-						return response.json();
-					})
-					}).catch(err => {
-						console.error('Error getting profile:', err);
 					});
-				} else {
-					liff.login();
+					
+					if (!response.ok) {
+						throw new Error(`Network response error: ${response.status}`);
+					}
+					
+					const data = await response.json();
+					console.log("Backend response:", data);
+					
+				} catch (error) {
+					console.error("Error sending user data to backend:", error);
 				}
 			}
-			initLiff();
+			
+			async function initLiff() {
+				try {
+					// รอให้ LIFF init เสร็จสิ้น
+					await liff.init({ liffId: '2006049603-5Ne6yzM4'});
+					console.log("LIFF initialization completed");
+					
+					if (!liff.isLoggedIn()) {
+						console.log("User not logged in. Redirecting to LINE login...");
+						liff.login();
+						return;
+					}
+					
+					// ตรวจสอบว่าได้ context หรือไม่
+					const context = liff.getContext();
+					if (!context) {
+						console.error("LIFF context is undefined");
+						return;
+					}
+					
+					// บันทึก userId เพื่อใช้ในการส่งข้อมูลไป backend
+					const userId = context.userId;
+					if (!userId) {
+						console.error("userId is not available from context");
+						return;
+					}
+					
+					// รอให้ได้ข้อมูล profile
+					const profile = await liff.getProfile();
+					console.log("LINE profile received:", profile);
+					
+					// ส่งข้อมูลไป backend เมื่อมีทั้ง userId และ profile แล้ว
+					await sendUserDataToBackend(userId, profile);
+					
+					// เก็บข้อมูลไว้ใน sessionStorage เพื่อให้สามารถใช้ในคอมโพเนนต์อื่นได้
+					sessionStorage.setItem("lineUserId", userId);
+					sessionStorage.setItem("lineProfile", JSON.stringify(profile));
+					
+				} catch (error) {
+					console.error("Error in LIFF initialization:", error);
+				}
+			}
+			
+			// เริ่มการทำงานเมื่อ DOM พร้อม
+			document.addEventListener("DOMContentLoaded", () => {
+				console.log("DOM loaded, initializing LIFF...");
+				initLiff();
+			});
 		</script>
 	</body>
 </html>
