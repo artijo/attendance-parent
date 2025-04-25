@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { HOSTNAME } from "../config";
 import liff from "@line/liff";
+import { formatTitle } from "../helper";
 
 function AddStudentForm() {
     const [studentId, setStudentId] = useState("");
@@ -114,7 +115,7 @@ function AddStudentForm() {
             }
             
             const data = await response.json();
-            setSuccess(`เพิ่มนักเรียน ${studentData.fName} ${studentData.lName} เรียบร้อยแล้ว`);
+            setSuccess(`เพิ่มนักเรียน ${formatTitle(studentData.title)}${studentData.fName} ${studentData.lName} เรียบร้อยแล้ว`);
             setStudentId("");
             setStudentData(null);
             
@@ -231,7 +232,7 @@ function AddStudentForm() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="bg-white p-3 rounded-md shadow-sm">
                                 <div className="text-sm text-gray-500">ชื่อ-นามสกุล</div>
-                                <div className="font-medium">{studentData.title} {studentData.fName} {studentData.lName}</div>
+                                <div className="font-medium">{formatTitle(studentData.title)}{studentData.fName} {studentData.lName}</div>
                             </div>
                             
                             <div className="bg-white p-3 rounded-md shadow-sm">

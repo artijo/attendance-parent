@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { HOSTNAME } from "../config";
 import liff from "@line/liff";
+import { formatTitle } from "../helper";
 
 export default function Students() {
     const [students, setStudents] = useState([]);
@@ -130,7 +131,7 @@ export default function Students() {
 
     // ฟังก์ชันแสดงกล่องยืนยันการยกเลิก
     const confirmCancelNotification = (student) => {
-        const studentName = `${student.student.fName} ${student.student.lName}`;
+        const studentName = `${formatTitle(student.student.title)}${student.student.fName} ${student.student.lName}`;
         const studentId = student.student.stdId;
         
         if (window.confirm(`คุณต้องการยกเลิกการรับการแจ้งเตือนสำหรับ ${studentName} ใช่หรือไม่?`)) {
@@ -223,7 +224,7 @@ export default function Students() {
                                         <tr key={student.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-text">{index + 1}</td>
                                             <td className="px-4 py-3 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-text">{student.student.fName} {student.student.lName}</div>
+                                                <div className="text-sm font-medium text-text">{formatTitle(student.student.title)}{student.student.fName} {student.student.lName}</div>
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-primary">
