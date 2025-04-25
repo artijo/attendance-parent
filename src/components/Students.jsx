@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { HOSTNAME } from "../config";
 import liff from "@line/liff";
+import { formatTitle } from "../helper";
 
 export default function Students() {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [userId, setUserId] = useState(null);
+    const [cancelingStudent, setCancelingStudent] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
     
     useEffect(() => {
         // ดึง userId จาก LINE Login ก่อน
@@ -37,6 +40,17 @@ export default function Students() {
             fetchStudents();
         }
     }, [userId]);
+
+    // ซ่อนข้อความสำเร็จหลังจาก 5 วินาที
+    useEffect(() => {
+        if (successMessage) {
+            const timer = setTimeout(() => {
+                setSuccessMessage(null);
+            }, 5000);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [successMessage]);
     
     const fetchStudents = async () => {
         try {
@@ -75,10 +89,61 @@ export default function Students() {
         }
     };
 
+    // ฟังก์ชันยกเลิกรับการแจ้งเตือนของนักเรียน
+    const cancelNotification = async (studentId) => {
+        try {
+            if (!userId || !studentId) {
+                setError("ไม่สามารถยกเลิกการรับการแจ้งเตือนได้ ข้อมูลไม่ครบถ้วน");
+                return;
+            }
+
+            setCancelingStudent(studentId);
+            setError(null);
+
+            const response = await fetch(`${HOSTNAME}/p/unsubscribe`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    studentId: studentId,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`ไม่สามารถยกเลิกการรับการแจ้งเตือนได้ (${response.status})`);
+            }
+
+            const result = await response.json();
+            console.log("Unsubscribe result:", result);
+            
+            // อัพเดตข้อมูลนักเรียนหลังจากยกเลิกการรับการแจ้งเตือนเรียบร้อยแล้ว
+            setStudents(prevStudents => prevStudents.filter(s => s.student.stdId !== studentId));
+            setSuccessMessage(`ยกเลิกการรับการแจ้งเตือนสำหรับนักเรียนเรียบร้อยแล้ว`);
+        } catch (error) {
+            console.error("Error canceling notification:", error);
+            setError(error.message || "ไม่สามารถยกเลิกการรับการแจ้งเตือนได้ กรุณาลองใหม่อีกครั้ง");
+        } finally {
+            setCancelingStudent(null);
+        }
+    };
+
+    // ฟังก์ชันแสดงกล่องยืนยันการยกเลิก
+    const confirmCancelNotification = (student) => {
+        const studentName = `${formatTitle(student.student.title)}${student.student.fName} ${student.student.lName}`;
+        const studentId = student.student.stdId;
+        
+        if (window.confirm(`คุณต้องการยกเลิกการรับการแจ้งเตือนสำหรับ ${studentName} ใช่หรือไม่?`)) {
+            cancelNotification(studentId);
+        }
+    };
+
     // ฟังก์ชันสำหรับการโหลดข้อมูลใหม่
     const handleRefresh = () => {
         setLoading(true);
         setError(null);
+        setSuccessMessage(null);
         
         // ถ้ายังไม่มี userId ให้ดึงข้อมูล profile ใหม่
         if (!userId) {
@@ -129,6 +194,12 @@ export default function Students() {
                         {error}
                     </div>
                 )}
+
+                {successMessage && (
+                    <div className="p-3 sm:p-4 mb-4 text-center bg-green-100 border border-green-200 text-green-700 rounded-md text-sm">
+                        {successMessage}
+                    </div>
+                )}
                 
                 {loading ? (
                     <div className="flex flex-col justify-center items-center h-32 sm:h-40">
@@ -145,7 +216,7 @@ export default function Students() {
                                         <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-text-alt uppercase tracking-wider">ลำดับ</th>
                                         <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-text-alt uppercase tracking-wider">ชื่อ-นามสกุล</th>
                                         <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-text-alt uppercase tracking-wider">ชั้นเรียน</th>
-                                        {/* <th className="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-text-alt uppercase tracking-wider">สถานะ</th> */}
+                                        <th className="px-4 py-3 bg-gray-50 text-center text-xs font-medium text-text-alt uppercase tracking-wider">การแจ้งเตือน</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-line-alt">
@@ -153,14 +224,37 @@ export default function Students() {
                                         <tr key={student.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-text">{index + 1}</td>
                                             <td className="px-4 py-3 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-text">{student.student.fName} {student.student.lName}</div>
+                                                <div className="text-sm font-medium text-text">{formatTitle(student.student.title)}{student.student.fName} {student.student.lName}</div>
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-primary">
                                                     ม.{student.student.classroomMembers[0].classroom.classLevel}/{student.student.classroomMembers[0].classroom.classRoom}
                                                 </span>
                                             </td>
-                                            {/* <td className="px-4 py-3 whitespace-nowrap text-sm text-text-alt">{student.status}</td> */}
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                                                <button
+                                                    onClick={() => confirmCancelNotification(student)}
+                                                    disabled={cancelingStudent === student.student.stdId}
+                                                    className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors disabled:opacity-50"
+                                                >
+                                                    {cancelingStudent === student.student.stdId ? (
+                                                        <>
+                                                            <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            กำลังยกเลิก...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                            ยกเลิกการแจ้งเตือน
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -176,12 +270,33 @@ export default function Students() {
                                             {student.student.fName} {student.student.lName}
                                         </div>
                                         <span className="text-xs bg-blue-100 text-primary px-2 py-1 rounded-full font-medium">
-                                        ม.{student.student.classroomMembers[0].classroom.classLevel}/{student.student.classroomMembers[0].classroom.classRoom}
+                                            ม.{student.student.classroomMembers[0].classroom.classLevel}/{student.student.classroomMembers[0].classroom.classRoom}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between text-xs">
+                                    <div className="flex justify-between items-center text-xs">
                                         <span className="text-text-alt">ลำดับที่: {index + 1}</span>
-                                        {student.status && <span className="text-text-alt">{student.status}</span>}
+                                        <button
+                                            onClick={() => confirmCancelNotification(student)}
+                                            disabled={cancelingStudent === student.student.stdId}
+                                            className="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors disabled:opacity-50"
+                                        >
+                                            {cancelingStudent === student.student.stdId ? (
+                                                <>
+                                                    <svg className="animate-spin -ml-0.5 mr-1 h-3 w-3 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    กำลังยกเลิก...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    ยกเลิกการแจ้งเตือน
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -228,10 +343,9 @@ export default function Students() {
                     ท่านจะได้รับการแจ้งเตือนผ่าน LINE เมื่อนักเรียนในความดูแลของท่าน:
                 </p>
                 <ul className="list-disc list-inside text-xs sm:text-sm text-text-alt space-y-1 pl-2">
-                    <li>มาถึงโรงเรียน</li>
-                    <li>ออกจากโรงเรียน</li>
+                    <li>เข้าเรียน</li>
                     <li>ขาดเรียนหรือมาสาย</li>
-                    <li>มีกิจกรรมพิเศษ</li>
+                    <li>เข้าร่วมกิจกรรม</li>
                 </ul>
             </div>
         </div>

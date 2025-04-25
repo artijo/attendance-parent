@@ -1,0 +1,19 @@
+---
+import Layout from "../layouts/Layout.astro";
+import UpdateProfileForm from "../components/UpdateProfileForm";
+---
+
+<Layout>
+    <div class="w-full max-w-2xl mx-auto px-4 py-6 sm:py-8">
+        <div class="flex justify-start mb-4">
+            <a href="/" class="text-primary hover:text-primary-dark flex items-center text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                กลับสู่หน้าหลัก
+            </a>
+        </div>
+        
+        <UpdateProfileForm client:load />
+    </div>
+</Layout>
