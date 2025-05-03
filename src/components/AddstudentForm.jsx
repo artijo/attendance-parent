@@ -16,10 +16,10 @@ function AddStudentForm() {
     React.useEffect(() => {
         async function getUserId() {
             try {
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                    return;
-                }
+                // if (!liff.isLoggedIn()) {
+                //     liff.login();
+                //     return;
+                // }
                 
                 const profile = await liff.getProfile();
                 setUserId(profile.userId);

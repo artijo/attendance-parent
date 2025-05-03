@@ -20,10 +20,10 @@ function UpdateProfileForm() {
         async function getUserProfile() {
             try {
                 // ตรวจสอบการเข้าสู่ระบบ
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                    return;
-                }
+                // if (!liff.isLoggedIn()) {
+                //     liff.login();
+                //     return;
+                // }
                 
                 const profile = await liff.getProfile();
                 setUserId(profile.userId);
