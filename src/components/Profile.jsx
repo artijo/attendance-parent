@@ -13,7 +13,6 @@ export default function Profile() {
         try {
             setLoading(true);
             const profile = await liff.getProfile();
-            console.log("LIFF Profile:", profile);
             setPictureUrl(profile.pictureUrl);
             setDisplayName(profile.displayName);
             setUserId(profile.userId);

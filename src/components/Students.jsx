@@ -16,10 +16,10 @@ export default function Students() {
         async function getUserProfile() {
             try {
                 // รอให้ LIFF พร้อมใช้งาน
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                    return;
-                }
+                // if (!liff.isLoggedIn()) {
+                //     liff.login();
+                //     return;
+                // }
                 
                 // ดึงข้อมูล LINE Profile
                 const profile = await liff.getProfile();
