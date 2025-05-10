@@ -8,43 +8,57 @@ export default function Profile() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [userId, setUserId] = useState(null);
+    const [isRetrying, setIsRetrying] = useState(false);
 
-    async function getProfile() {
+    // Combined function to get both LINE and backend profile data
+    async function getCompleteProfile() {
         try {
             setLoading(true);
+            setError(null);
+            
+            // First get LINE profile
             const profile = await liff.getProfile();
             setPictureUrl(profile.pictureUrl);
             setDisplayName(profile.displayName);
             setUserId(profile.userId);
+            
+            // Then immediately fetch backend profile using the userId we just got
+            if (profile.userId) {
+                try {
+                    const response = await fetch(`${HOSTNAME}/p/profile/${profile.userId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Only update the name if we got valid data from backend
+                        if (data && data.name) {
+                            setDisplayName(data.name);
+                        }
+                    }
+                } catch (backendError) {
+                    console.error("Error fetching backend profile:", backendError);
+                    // We don't set the main error here since we at least have LINE profile data
+                }
+            }
+            
             setLoading(false);
         } catch (error) {
             console.error("Error getting LIFF profile:", error);
             setError("ไม่สามารถดึงข้อมูลโปรไฟล์ได้");
             setLoading(false);
+        } finally {
+            setIsRetrying(false);
         }
     }
 
-    async function getUserProfile() {
-        try {
-            const user = await fetch(`${HOSTNAME}/p/profile/${userId}`)
-            const data = await user.json()
-            setDisplayName(data.name)
-        } catch (error) {
-            console.error("Error getting user profile:", error);
-            setError("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
-        }
-    }
-
+    // Initial data loading
     useEffect(() => {
-        getProfile();
+        getCompleteProfile();
     }, []);
 
-    useEffect(() => {
-        if (userId) {
-            getUserProfile();
-        }
-    }
-    , [userId]);
+    // Handle retry attempts
+    const handleRetry = () => {
+        setIsRetrying(true);
+        getCompleteProfile();
+    };
 
     // ฟังก์ชันสำหรับไปยังหน้าอัปเดตข้อมูลผู้ปกครอง
     const goToUpdateProfile = () => {
@@ -90,7 +104,9 @@ export default function Profile() {
             )}
             {error && (
                 <div className="mt-2 p-2 text-xs text-center bg-red-100 border border-red-200 text-red-700 rounded-md w-full sm:w-auto sm:ml-auto">
-                    {error} <button onClick={getProfile} className="underline ml-1">ลองอีกครั้ง</button>
+                    {error} <button onClick={handleRetry} disabled={isRetrying} className="underline ml-1">
+                        {isRetrying ? "กำลังลอง..." : "ลองอีกครั้ง"}
+                    </button>
                 </div>
             )}
         </div>
