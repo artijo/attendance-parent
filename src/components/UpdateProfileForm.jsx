@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { HOSTNAME } from "../config";
 import liff from "@line/liff";
+import { getLineProfile, getLineUserId, hasLineProfile } from "../helper";
 
 function UpdateProfileForm() {
     const [formData, setFormData] = useState({
@@ -15,18 +16,21 @@ function UpdateProfileForm() {
     const [success, setSuccess] = useState(null);
     const [userId, setUserId] = useState(null);
     
-    // ดึงข้อมูล userId และข้อมูลผู้ใช้จาก LINE
+    // ดึงข้อมูล userId และข้อมูลผู้ใช้จาก sessionStorage หรือ LINE
     useEffect(() => {
         async function getUserProfile() {
             try {
-                // ตรวจสอบการเข้าสู่ระบบ
-                // if (!liff.isLoggedIn()) {
-                //     liff.login();
-                //     return;
-                // }
+                let profile;
                 
-                const profile = await liff.getProfile();
-                setUserId(profile.userId);
+                // ตรวจสอบว่ามีข้อมูลใน sessionStorage หรือไม่
+                if (hasLineProfile()) {
+                    profile = getLineProfile();
+                    setUserId(profile.userId);
+                } else {
+                    // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
+                    profile = await liff.getProfile();
+                    setUserId(profile.userId);
+                }
                 
                 // ตั้งค่า displayName จาก LINE profile เป็นค่าเริ่มต้น
                 setFormData(prev => ({
