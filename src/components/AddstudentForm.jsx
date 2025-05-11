@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { HOSTNAME } from "../config";
 import liff from "@line/liff";
-import { formatTitle } from "../helper";
+import { formatTitle, getLineProfile, getLineUserId, hasLineProfile } from "../helper";
 
 function AddStudentForm() {
     const [studentId, setStudentId] = useState("");
@@ -11,18 +11,19 @@ function AddStudentForm() {
     const [success, setSuccess] = useState(null);
     const [userId, setUserId] = useState(null);
     const [studentData, setStudentData] = useState(null);
-    
-    // ดึงข้อมูล userId จาก LINE LOGIN
+      // ดึงข้อมูล userId จาก sessionStorage หรือ LINE LOGIN
     React.useEffect(() => {
         async function getUserId() {
             try {
-                // if (!liff.isLoggedIn()) {
-                //     liff.login();
-                //     return;
-                // }
-                
-                const profile = await liff.getProfile();
-                setUserId(profile.userId);
+                // ตรวจสอบว่ามีข้อมูลใน sessionStorage หรือไม่
+                if (hasLineProfile()) {
+                    const userId = getLineUserId();
+                    setUserId(userId);
+                } else {
+                    // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
+                    const profile = await liff.getProfile();
+                    setUserId(profile.userId);
+                }
             } catch (err) {
                 console.error("Error getting LINE profile:", err);
                 setError("ไม่สามารถดึงข้อมูลผู้ใช้ได้ กรุณาล็อกอินใหม่อีกครั้ง");

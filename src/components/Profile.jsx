@@ -1,6 +1,7 @@
 import liff from "@line/liff";
 import { useEffect, useState } from "react";
 import { HOSTNAME } from "../config";
+import { getLineProfile, getLineUserId, hasLineProfile } from "../helper";
 
 export default function Profile() {
     const [pictureUrl, setPictureUrl] = useState("");
@@ -10,22 +11,49 @@ export default function Profile() {
     const [userId, setUserId] = useState(null);
     const [isRetrying, setIsRetrying] = useState(false);
 
+    // ฟังก์ชันสำหรับดึงข้อมูลจาก sessionStorage
+    function loadProfileFromSession() {
+        const profile = getLineProfile();
+        if (profile) {
+            setPictureUrl(profile.pictureUrl);
+            setDisplayName(profile.displayName);
+            setUserId(profile.userId);
+            return profile.userId;
+        }
+        return null;
+    }
+
     // Combined function to get both LINE and backend profile data
     async function getCompleteProfile() {
         try {
             setLoading(true);
             setError(null);
             
-            // First get LINE profile
-            const profile = await liff.getProfile();
-            setPictureUrl(profile.pictureUrl);
-            setDisplayName(profile.displayName);
-            setUserId(profile.userId);
+            let userId = null;
             
-            // Then immediately fetch backend profile using the userId we just got
-            if (profile.userId) {
+            // ตรวจสอบว่ามีข้อมูลใน sessionStorage หรือไม่
+            if (hasLineProfile()) {
+                userId = loadProfileFromSession();
+            } else {
+                // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
                 try {
-                    const response = await fetch(`${HOSTNAME}/p/profile/${profile.userId}`);
+                    const profile = await liff.getProfile();
+                    setPictureUrl(profile.pictureUrl);
+                    setDisplayName(profile.displayName);
+                    setUserId(profile.userId);
+                    userId = profile.userId;
+                } catch (error) {
+                    console.error("Error getting LIFF profile:", error);
+                    setError("ไม่สามารถดึงข้อมูลโปรไฟล์ได้");
+                    setLoading(false);
+                    return;
+                }
+            }
+            
+            // ดึงข้อมูลเพิ่มเติมจาก backend
+            if (userId) {
+                try {
+                    const response = await fetch(`${HOSTNAME}/p/profile/${userId}`);
                     if (response.ok) {
                         const data = await response.json();
                         // Only update the name if we got valid data from backend
@@ -41,7 +69,7 @@ export default function Profile() {
             
             setLoading(false);
         } catch (error) {
-            console.error("Error getting LIFF profile:", error);
+            console.error("Error in getCompleteProfile:", error);
             setError("ไม่สามารถดึงข้อมูลโปรไฟล์ได้");
             setLoading(false);
         } finally {

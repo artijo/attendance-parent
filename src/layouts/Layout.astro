@@ -113,10 +113,12 @@ import Profile from "../components/Profile";
 					
 					// ส่งข้อมูลไป backend เมื่อมีทั้ง userId และ profile แล้ว
 					await sendUserDataToBackend(userId, profile);
+							// เก็บข้อมูลไว้ใน sessionStorage เพื่อให้สามารถใช้ในคอมโพเนนต์อื่นได้
+					sessionStorage.setItem("lineUserId", userId);
+					sessionStorage.setItem("lineProfile", JSON.stringify(profile));
 					
-					// เก็บข้อมูลไว้ใน sessionStorage เพื่อให้สามารถใช้ในคอมโพเนนต์อื่นได้
-					// sessionStorage.setItem("lineUserId", userId);
-					// sessionStorage.setItem("lineProfile", JSON.stringify(profile));
+					// เก็บเวลาที่บันทึกข้อมูลล่าสุด
+					sessionStorage.setItem("profileLastUpdated", new Date().toISOString());
 					
 				} catch (error) {
 					console.error("Error in LIFF initialization:", error);
