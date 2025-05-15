@@ -49,3 +49,37 @@ export const clearLineProfile = () => {
         sessionStorage.removeItem('profileLastUpdated');
     }
 }
+
+// ฟังก์ชันสำหรับดึงข้อมูล LINE Profile แบบปลอดภัย โดยจะรอให้ LIFF พร้อมใช้งาน
+export const getLiffProfile = async (liff) => {
+    try {
+        // รอให้ LIFF SDK พร้อมใช้งานก่อน
+        await liff.ready;
+        
+        // ตรวจสอบว่ามีข้อมูลใน sessionStorage หรือไม่
+        if (hasLineProfile()) {
+            return getLineProfile();
+        }
+        
+        // ตรวจสอบว่าผู้ใช้ล็อกอินแล้วหรือไม่
+        if (!liff.isLoggedIn()) {
+            liff.login();
+            return null;
+        }
+        
+        // ดึงข้อมูล LINE Profile
+        const profile = await liff.getProfile();
+        
+        // บันทึกข้อมูลลงใน sessionStorage
+        if (profile && profile.userId) {
+            sessionStorage.setItem("lineUserId", profile.userId);
+            sessionStorage.setItem("lineProfile", JSON.stringify(profile));
+            sessionStorage.setItem("profileLastUpdated", new Date().toISOString());
+        }
+        
+        return profile;
+    } catch (error) {
+        console.error("Error getting LIFF profile:", error);
+        return null;
+    }
+}
