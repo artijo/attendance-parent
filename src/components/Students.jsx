@@ -18,10 +18,16 @@ export default function Students() {
                 // ตรวจสอบว่ามีข้อมูลใน sessionStorage หรือไม่
                 if (hasLineProfile()) {
                     const userId = getLineUserId();
-                    setUserId(userId);                } else {                    // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
-                    await liff.ready;
-                    const profile = await liff.getProfile();
-                    setUserId(profile.userId);
+                    setUserId(userId);                } else {                    
+                    // ตรวจสอบว่า LIFF พร้อมใช้งานหรือไม่ ถ้าไม่พร้อมให้รอ
+                    try {
+                        await liff.ready;
+                        const profile = await liff.getProfile();
+                        setUserId(profile.userId);
+                    } catch (liffError) {
+                        console.error("LIFF error:", liffError);
+                        throw new Error("ไม่สามารถโหลดข้อมูล LIFF ได้");
+                    }
                 }
             } catch (error) {
                 console.error("Error getting LINE profile:", error);
@@ -136,28 +142,40 @@ export default function Students() {
         if (window.confirm(`คุณต้องการยกเลิกการรับการแจ้งเตือนสำหรับ ${studentName} ใช่หรือไม่?`)) {
             cancelNotification(studentId);
         }
-    };
-
-    // ฟังก์ชันสำหรับการโหลดข้อมูลใหม่
-    const handleRefresh = () => {
+    };    // ฟังก์ชันสำหรับการโหลดข้อมูลใหม่
+    const handleRefresh = async () => {
         setLoading(true);
         setError(null);
         setSuccessMessage(null);
         
-        // ถ้ายังไม่มี userId ให้ดึงข้อมูล profile ใหม่
-        if (!userId) {
-            liff.getProfile()
-                .then(profile => {
+        try {
+            // ถ้ายังไม่มี userId ให้ดึงข้อมูล profile ใหม่
+            if (!userId) {
+                // รอให้ LIFF พร้อมใช้งานก่อน
+                await liff.ready;
+                
+                try {
+                    const profile = await liff.getProfile();
                     setUserId(profile.userId);
-                })
-                .catch(error => {
-                    console.error("Error refreshing profile:", error);
-                    setError("ไม่สามารถดึงข้อมูล userId ได้ กรุณาลองใหม่อีกครั้ง");
+                    
+                    // อัพเดต sessionStorage ด้วย
+                    sessionStorage.setItem("lineUserId", profile.userId);
+                    sessionStorage.setItem("lineProfile", JSON.stringify(profile));
+                    sessionStorage.setItem("profileLastUpdated", new Date().toISOString());
+                } catch (profileError) {
+                    console.error("Error refreshing profile:", profileError);
+                    setError("ไม่สามารถดึงข้อมูล LINE Profile ได้ กรุณาลองใหม่อีกครั้ง");
                     setLoading(false);
-                });
-        } else {
-            // ถ้ามี userId แล้ว ให้โหลดข้อมูลนักเรียนใหม่
-            fetchStudents();
+                    return;
+                }
+            } else {
+                // ถ้ามี userId แล้ว ให้โหลดข้อมูลนักเรียนใหม่
+                await fetchStudents();
+            }
+        } catch (error) {
+            console.error("Error in refresh:", error);
+            setError("เกิดข้อผิดพลาดในการรีเฟรชข้อมูล กรุณาลองใหม่อีกครั้ง");
+            setLoading(false);
         }
     };
 
@@ -199,11 +217,11 @@ export default function Students() {
                         {successMessage}
                     </div>
                 )}
-                
-                {loading ? (
+                  {loading ? (
                     <div className="flex flex-col justify-center items-center h-32 sm:h-40">
-                        <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-primary mb-2"></div>
-                        <p className="text-sm text-gray-500">{!userId ? "กำลังดึงข้อมูลผู้ใช้..." : "กำลังโหลดข้อมูลนักเรียน..."}</p>
+                        <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-primary border-t-transparent mb-3"></div>
+                        <p className="text-sm text-gray-700 font-medium mb-1">{!userId ? "กำลังดึงข้อมูลผู้ใช้..." : "กำลังโหลดข้อมูลนักเรียน..."}</p>
+                        <p className="text-xs text-gray-500">กรุณารอสักครู่...</p>
                     </div>
                 ) : students.length > 0 ? (
                     <>

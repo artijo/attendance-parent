@@ -15,7 +15,16 @@ import Profile from "../components/Profile";
 		<title>ระบบลงทะเบียนรับการแจ้งเตือนการเข้าเรียนและกิจกรรมจองนักเรียน สำหรับผู้ปกครอง</title>
 	</head>
 	<body class="min-h-screen flex flex-col bg-bg text-text">
-		<main class="flex-grow container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
+		<!-- หน้าโหลดที่จะแสดงระหว่างรอ LIFF โหลด -->
+		<div id="loading-screen" class="fixed inset-0 bg-bg flex flex-col items-center justify-center z-50">
+			<img src="/Logo_NPS.png" alt="School Logo" class="h-16 sm:h-20 w-auto mb-6" />
+			<div class="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-primary border-t-transparent mb-4"></div>
+			<h2 class="text-lg sm:text-xl font-bold text-primary mb-1">กำลังโหลด</h2>
+			<p class="text-sm text-text-alt">กรุณารอสักครู่...</p>
+		</div>
+		
+		<!-- เนื้อหาหลักที่จะแสดงเมื่อโหลดเสร็จ -->
+		<main id="main-content" class="flex-grow container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 hidden">
 			<header class="bg-gradient-to-r from-primary to-accent text-white p-4 sm:p-6 rounded-lg shadow-md mb-4 sm:mb-6">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center space-x-2 sm:space-x-3">
@@ -82,9 +91,27 @@ import Profile from "../components/Profile";
 				} catch (error) {
 					console.error("Error sending user data to backend:", error);
 				}
+			}			// ฟังก์ชันสำหรับแสดง/ซ่อนหน้าโหลด
+			function showLoadingScreen(show = true) {
+				const loadingScreen = document.getElementById('loading-screen');
+				const mainContent = document.getElementById('main-content');
+				
+				if (loadingScreen && mainContent) {
+					if (show) {
+						loadingScreen.classList.remove('hidden');
+						mainContent.classList.add('hidden');
+					} else {
+						loadingScreen.classList.add('hidden');
+						mainContent.classList.remove('hidden');
+					}
+				}
 			}
-					async function initLiff() {
+			
+			async function initLiff() {
 				try {
+					// แสดงหน้าโหลดก่อน
+					showLoadingScreen(true);
+					
 					// รอให้ LIFF init เสร็จสิ้น
 					await liff.init({ liffId: '2006049603-5Ne6yzM4'});
 					console.log("LIFF initialization completed");
@@ -116,22 +143,67 @@ import Profile from "../components/Profile";
 					
 					// ส่งข้อมูลไป backend เมื่อมีทั้ง userId และ profile แล้ว
 					await sendUserDataToBackend(userId, profile);
-							// เก็บข้อมูลไว้ใน sessionStorage เพื่อให้สามารถใช้ในคอมโพเนนต์อื่นได้
+					
+					// เก็บข้อมูลไว้ใน sessionStorage เพื่อให้สามารถใช้ในคอมโพเนนต์อื่นได้
 					sessionStorage.setItem("lineUserId", userId);
 					sessionStorage.setItem("lineProfile", JSON.stringify(profile));
 					
 					// เก็บเวลาที่บันทึกข้อมูลล่าสุด
 					sessionStorage.setItem("profileLastUpdated", new Date().toISOString());
 					
-				} catch (error) {
+					// ซ่อนหน้าโหลดและแสดงเนื้อหาหลักเมื่อทุกอย่างพร้อม
+					showLoadingScreen(false);
+							} catch (error) {
 					console.error("Error in LIFF initialization:", error);
+					
+					// แสดงข้อผิดพลาดที่หน้าโหลด
+					const loadingScreen = document.getElementById('loading-screen');
+					if (loadingScreen) {
+						// แสดงข้อความแสดงข้อผิดพลาด
+						const errorElement = document.createElement('div');
+						errorElement.className = 'mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-center max-w-md';
+						errorElement.innerHTML = `
+							<p class="font-bold mb-1">เกิดข้อผิดพลาด</p>
+							<p class="text-sm">ไม่สามารถโหลดข้อมูลได้ โปรดลองใหม่อีกครั้ง</p>
+							<button id="retryButton" class="mt-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm">ลองใหม่</button>
+						`;
+						loadingScreen.querySelector('p').replaceWith(errorElement);
+						
+						// ซ่อนการ loading
+						const loadingSpinner = loadingScreen.querySelector('.animate-spin');
+						if (loadingSpinner) {
+							loadingSpinner.classList.add('hidden');
+						}
+						
+						// เพิ่ม event listener สำหรับปุ่มลองใหม่
+						document.getElementById('retryButton').addEventListener('click', () => {
+							window.location.reload();
+						});
+					}
 				}
 			}
-			
-			// เริ่มการทำงานเมื่อ DOM พร้อม
+					// เริ่มการทำงานเมื่อ DOM พร้อม
 			document.addEventListener("DOMContentLoaded", () => {
 				console.log("DOM loaded, initializing LIFF...");
+				// ตั้งค่า timeout เพื่อตรวจสอบว่าโหลดนานเกินไปหรือไม่
+				const timeout = setTimeout(() => {
+					// ถ้าใช้เวลาเกิน 10 วินาทีแล้วยังโหลดไม่เสร็จ
+					const loadingScreen = document.getElementById('loading-screen');
+					if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
+						const warningElement = document.createElement('p');
+						warningElement.className = 'text-yellow-600 mt-2';
+						warningElement.textContent = 'การโหลดอาจใช้เวลานานกว่าปกติ โปรดรอสักครู่...';
+						loadingScreen.appendChild(warningElement);
+					}
+				}, 10000); // 10 วินาที
+
+				// เรียกใช้ initLiff
 				initLiff();
+				
+				// ยกเลิก timeout หากมีการคลิกที่หน้าจอ (แสดงว่าผู้ใช้กำลังโต้ตอบ)
+				document.addEventListener("click", () => {
+					clearTimeout(timeout);
+				});
 			});
 		</script>
 	</body>
