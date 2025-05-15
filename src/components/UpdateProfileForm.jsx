@@ -26,8 +26,8 @@ function UpdateProfileForm() {
                 if (hasLineProfile()) {
                     profile = getLineProfile();
                     setUserId(profile.userId);
-                } else {
-                    // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
+                } else {                    // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
+                    await liff.ready;
                     profile = await liff.getProfile();
                     setUserId(profile.userId);
                 }

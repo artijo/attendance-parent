@@ -83,12 +83,15 @@ import Profile from "../components/Profile";
 					console.error("Error sending user data to backend:", error);
 				}
 			}
-			
-			async function initLiff() {
+					async function initLiff() {
 				try {
 					// รอให้ LIFF init เสร็จสิ้น
 					await liff.init({ liffId: '2006049603-5Ne6yzM4'});
 					console.log("LIFF initialization completed");
+					
+					// ใช้ liff.ready() เพื่อรอให้ SDK พร้อมใช้งานอย่างสมบูรณ์
+					await liff.ready;
+					console.log("LIFF is ready");
 					
 					if (!liff.isLoggedIn()) {
 						console.log("User not logged in. Redirecting to LINE login...");

@@ -18,8 +18,8 @@ export default function Students() {
                 // ตรวจสอบว่ามีข้อมูลใน sessionStorage หรือไม่
                 if (hasLineProfile()) {
                     const userId = getLineUserId();
-                    setUserId(userId);
-                } else {                    // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
+                    setUserId(userId);                } else {                    // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
+                    await liff.ready;
                     const profile = await liff.getProfile();
                     setUserId(profile.userId);
                 }

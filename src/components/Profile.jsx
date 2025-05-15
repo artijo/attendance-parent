@@ -34,9 +34,10 @@ export default function Profile() {
             // ตรวจสอบว่ามีข้อมูลใน sessionStorage หรือไม่
             if (hasLineProfile()) {
                 userId = loadProfileFromSession();
-            } else {
-                // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
+            } else {                // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
                 try {
+                    // รอให้ LIFF พร้อมใช้งานก่อนเรียกใช้ API
+                    await liff.ready;
                     const profile = await liff.getProfile();
                     setPictureUrl(profile.pictureUrl);
                     setDisplayName(profile.displayName);

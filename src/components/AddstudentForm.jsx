@@ -19,8 +19,8 @@ function AddStudentForm() {
                 if (hasLineProfile()) {
                     const userId = getLineUserId();
                     setUserId(userId);
-                } else {
-                    // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
+                } else {                    // ถ้าไม่มีข้อมูลใน sessionStorage ให้โหลดใหม่จาก LIFF API
+                    await liff.ready;
                     const profile = await liff.getProfile();
                     setUserId(profile.userId);
                 }
